@@ -3,6 +3,9 @@
 
 import 'package:project/bmicalculator.dart';
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'home_screen.dart';
 
 class BMICalculator extends StatefulWidget {
   const BMICalculator({Key? key}) : super(key: key);
@@ -36,13 +39,51 @@ class BMICalState extends State<BMICalculator> {
         c1 = Colors.red;
       }
     });
+    // === ADD THIS CODE AFTER setState ===
+    final currentUser = FirebaseAuth.instance.currentUser;
+    if (currentUser != null) {
+      String category = "Unknown";
+      if (result < 18.5) category = "Underweight";
+      else if (result <= 24.9) category = "Normal";
+      else if (result <= 29.9) category = "Overweight";
+      else if (result <= 34.9) category = "Obese";
+      else category = "Extreme";
+
+      await FirebaseFirestore.instance
+          .collection('users')
+          .doc(currentUser.uid)
+          .collection('bmi_history')
+          .add({
+        'weight': myweight,
+        'height': myheight * 100, // save in cm
+        'bmi': result,
+        'category': category,
+        'timestamp': FieldValue.serverTimestamp(),
+      });
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     double height = MediaQuery.of(context).size.height;
     return Scaffold(
-      body: SingleChildScrollView(
+        appBar: AppBar(
+          title: const Text("BMI Calculator"),
+          backgroundColor: Colors.brown,
+
+          // 👇 BACK BUTTON
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back),
+            onPressed: () {
+              Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(builder: (_) => const HomeScreen()),
+              );
+            },
+          ),
+        ),
+
+        body: SingleChildScrollView(
         child: Center(
           child: Container(
             height: height,
